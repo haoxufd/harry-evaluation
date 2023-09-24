@@ -32,11 +32,11 @@ def convert_snort_rules_to_hs_lits(snort_rules_file, hs_lits_file):
             line_pattern = "{}:/{}/" if i == len(contents) - 1 else "{}:/{}/\n"
             f.write(line_pattern.format(i, content_to_hex_str(content)))
 
-def scale_hs_lits(hs_lits_file, scale=[i * 100 for i in range(1, 31)]):
+def scale_hs_lits(hs_lits_file, des_dir, scale=[i * 100 for i in range(1, 31)]):
     with open(hs_lits_file, 'r') as f:
         lines = f.readlines()
         for sc in scale:
-            with open("./data/snort3-{}.lits".format(sc), 'w') as f_tmp:
+            with open("{}/snort3-{}.lits".format(des_dir, sc), 'w') as f_tmp:
                 f_tmp.writelines(lines[:sc])
 
 def filter_hs_lits(hs_lits_file1, hs_lits_file2, length):
@@ -138,19 +138,22 @@ def rearrange_hs_lits(hs_lits_file1, hs_lits_file2, lit_sets, chunk_size, matche
             rearranged_lines.append(lines[lit])
         f2.writelines(rearranged_lines)
 
-def task_rearrange():
-    cnt_dict = count_match("./data/alexa-match-result")
-    lit_sets = pick_lits(cnt_dict, 50, 30)
-    rearrange_hs_lits("./data/snort3-all.lits", "./data/rearranged-snort3-all.lits", lit_sets, 100, list(cnt_dict.keys()))
+def task_rearrange_lits(lits_file, match_result, lits_type, corpora, match_num_per_set, set_num):
+    cnt_dict = count_match(match_result)
+    lit_sets = pick_lits(cnt_dict, match_num_per_set, set_num)
+    rearrange_hs_lits(lits_file, "./data/rearranged-{}-for-{}.lits".format(lits_type, corpora), lit_sets, 100, list(cnt_dict.keys()))
 
-def task_print_cnt_dict():
-    cnt_dict = count_match("./data/alexa-match-result")
-    cnt_dict = dict(sorted(cnt_dict.items(), key=lambda item: item[0]))
+def task_print_cnt_dict(match_file):
+    cnt_dict = count_match(match_file)
+    cnt_dict = dict(sorted(cnt_dict.items(), key=lambda item: item[1]))
     for k in cnt_dict:
         print("Literal {}, {} times".format(k, cnt_dict[k]))
+    lit_sets = pick_lits(cnt_dict, 3880, 30)
+    for ls in lit_sets:
+        print("Lit set {} | Match num {}".format(ls, sum([cnt_dict[x] for x in ls])))
 
-def task_scale_rearranged_lits():
-    scale_hs_lits("./data/rearranged-snort3-all.lits")
+def task_scale_rearranged_lits(rearranged_lits_file, des_dir):
+    scale_hs_lits(rearranged_lits_file, des_dir)
 
 if __name__ == "__main__":
-    task_scale_rearranged_lits()
+    task_scale_rearranged_lits("./data/rearranged-snort3-all-for-ixia.lits", "./data/ixia-snort-lit-sets")

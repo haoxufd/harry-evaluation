@@ -1,0 +1,15 @@
+Signatures:        /home/xuhao/harry-evaluation/data/snort3-3000.lits
+Hyperscan info:    Version: 5.6.1 Features: AVX512 Mode: BLOCK
+Expression count:  3,000
+Bytecode size:     377,256 bytes
+Database CRC:      0x9ba4151a
+Scratch size:      2,350 bytes
+Compile time:      0.088 seconds
+Peak heap usage:   12,238,848 bytes
+
+Time spent scanning:       0.004 seconds
+Corpus size:               1,547,852 bytes (2,793 blocks)
+Matches per iteration:     1,498 (0.991 matches/kilobyte)
+Overall block rate:        660,432.79 blocks/sec
+Mean throughput (overall): 2,928.04 Mbit/sec
+Max throughput (per core): 2,928.39 Mbit/sec

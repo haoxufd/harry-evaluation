@@ -1,7 +1,7 @@
 import os
 import sys
 sys.path.append('..')
-from utils import *
+from organize_lits import *
 
 
 def test_content_to_hex_str():
