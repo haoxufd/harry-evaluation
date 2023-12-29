@@ -1,4 +1,5 @@
 import re
+import random
 from collections import OrderedDict
 
 def content_to_hex_str(content:str):
@@ -32,18 +33,18 @@ def convert_snort_rules_to_hs_lits(snort_rules_file, hs_lits_file):
             line_pattern = "{}:/{}/" if i == len(contents) - 1 else "{}:/{}/\n"
             f.write(line_pattern.format(i, content_to_hex_str(content)))
 
-def scale_hs_lits(hs_lits_file, des_dir, scale=[i * 100 for i in range(1, 31)]):
+def scale_hs_lits(hs_lits_file, des_dir, lit_file_prefix, scale=[i * 100 for i in range(1, 31)]):
     with open(hs_lits_file, 'r') as f:
         lines = f.readlines()
         for sc in scale:
-            with open("{}/snort3-{}.lits".format(des_dir, sc), 'w') as f_tmp:
+            with open("{}/{}-{}.lits".format(des_dir, lit_file_prefix, sc), 'w') as f_tmp:
                 f_tmp.writelines(lines[:sc])
 
 def filter_hs_lits(hs_lits_file1, hs_lits_file2, length):
     with open(hs_lits_file1, 'r') as f1, open(hs_lits_file2, 'w') as f2:
         num = 0
         for line in f1:
-            if line.count('x') > length:
+            if line.count('x') >= length:
                 f2.write("{}:{}".format(num, line.split(':')[-1]))
                 num += 1
 
@@ -62,16 +63,24 @@ def count_match(match_result_file):
 
 def pick_lits(cnt_dict, match_num_per_set, set_num):
     cnt_dict = dict(sorted(cnt_dict.items(), key=lambda item: item[1]))
+    print(cnt_dict)
     items = list(cnt_dict.items())
     is_selected = [False for i in range(len(items))]
 
     # Find the fisrt item where item[1] > match_num_per_set
     pos = 0
-    while items[pos][1] <= match_num_per_set:
+    while pos < len(items) and items[pos][1] <= match_num_per_set:
         pos += 1
     
     lit_sets = []
-    assert pos >= set_num
+    if pos < set_num:
+        print("The number of rules that are matched less or equal to {} times is less than {}".format(match_num_per_set, set_num))
+        print("Match Casees:")
+        for id in cnt_dict:
+            print("Literal {}: {} times".format(id, cnt_dict[id]))
+            lit_sets.append([id])
+        return lit_sets
+
     for i in range(pos - 1, pos - set_num - 1, -1):
         lit_set = [items[i][0]]
         is_selected[i] = True
@@ -100,15 +109,20 @@ def pick_lits(cnt_dict, match_num_per_set, set_num):
     
     return lit_sets
 
-def pick_k_from_unmatched_lits(is_matched, is_selected, k):
+def pick_k_from_unmatched_lits(is_matched, is_selected, k, rdm=False):
     ret = []
-    for i in range(len(is_matched)):
-        if k <= 0:
-            break
+    i = 0
+
+    while k > 0 and i < len(is_matched):
+        if rdm:
+            i = random.randint(0, len(is_matched) - 1)
         if not is_matched[i] and not is_selected[i]:
             ret.append(i)
             is_selected[i] = True
             k -= 1
+        if not rdm:
+            i += 1
+
     return ret
 
 def rearrange_hs_lits(hs_lits_file1, hs_lits_file2, lit_sets, chunk_size, matched_lits):
@@ -127,7 +141,7 @@ def rearrange_hs_lits(hs_lits_file1, hs_lits_file2, lit_sets, chunk_size, matche
             rearranged_lits.extend(ls)
             for lit in ls:
                 is_selected[lit] = True
-            rearranged_lits.extend(pick_k_from_unmatched_lits(is_matched, is_selected, chunk_size-len(ls)))
+            rearranged_lits.extend(pick_k_from_unmatched_lits(is_matched, is_selected, chunk_size-len(ls), True))
         
         for i in range(num_literals):
             if not is_selected[i]:
@@ -138,22 +152,27 @@ def rearrange_hs_lits(hs_lits_file1, hs_lits_file2, lit_sets, chunk_size, matche
             rearranged_lines.append(lines[lit])
         f2.writelines(rearranged_lines)
 
-def task_rearrange_lits(lits_file, match_result, lits_type, corpora, match_num_per_set, set_num):
+def task_rearrange_lits(lits_file1, lits_file2, match_result, match_num_per_set, set_num):
     cnt_dict = count_match(match_result)
     lit_sets = pick_lits(cnt_dict, match_num_per_set, set_num)
-    rearrange_hs_lits(lits_file, "./data/rearranged-{}-for-{}.lits".format(lits_type, corpora), lit_sets, 100, list(cnt_dict.keys()))
+    rearrange_hs_lits(lits_file1, lits_file2, lit_sets, 100, list(cnt_dict.keys()))
 
 def task_print_cnt_dict(match_file):
     cnt_dict = count_match(match_file)
     cnt_dict = dict(sorted(cnt_dict.items(), key=lambda item: item[1]))
     for k in cnt_dict:
         print("Literal {}, {} times".format(k, cnt_dict[k]))
-    lit_sets = pick_lits(cnt_dict, 3880, 30)
+    lit_sets = pick_lits(cnt_dict, 1, 30)
     for ls in lit_sets:
         print("Lit set {} | Match num {}".format(ls, sum([cnt_dict[x] for x in ls])))
 
-def task_scale_rearranged_lits(rearranged_lits_file, des_dir):
-    scale_hs_lits(rearranged_lits_file, des_dir)
+def task_scale_rearranged_lits(rearranged_lits_file, des_dir, prefix):
+    scale_hs_lits(rearranged_lits_file, des_dir, prefix)
 
 if __name__ == "__main__":
-    task_scale_rearranged_lits("./data/rearranged-snort3-all-for-ixia.lits", "./data/ixia-snort-lit-sets")
+    # convert_snort_rules_to_hs_lits("./data/suricata-emerging-all.rules", "./data/suricata-emerging-all.lits")
+    # filter_hs_lits("./data/suricata-emerging-all.lits", "./data/filtered-suricata-emerging-all.lits", 8)
+    task_rearrange_lits("./data/filtered-suricata-emerging-all.lits", "./data/rearranged-filtered-suricata-emerging-all-fudan-80-30.lits", "./data/fudan-filtered-suricata-emerging-all-match-result", 80, 30)
+    task_scale_rearranged_lits("./data/rearranged-filtered-suricata-emerging-all-fudan-80-30.lits", "./data/fudan-suricata-lit-sets/0.1", "suricata")
+    # task_rearrange_lits("./data/filtered-suricata-emerging-all.lits", "./data/rearranged-filtered-suricata-emerging-all-ixia-429-30.lits", "./data/ixia-filtered-suricata-emerging-all-match-result", 429, 30)
+    # task_scale_rearranged_lits("./data/rearranged-filtered-suricata-emerging-all-ixia-429-30.lits", "./data/ixia-suricata-lit-sets/0.1", "suricata")
