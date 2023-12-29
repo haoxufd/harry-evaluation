@@ -157,8 +157,8 @@ def draw_bench_group(bench_group_result, file_name, format):
 
     ax2.plot(x, bench_group_result[1], color = COLORS[-1], marker=MARKERS[-1], linestyle='-', label="Match Rate")
 
-    ax1.legend(loc="upper right", ncol=3, bbox_to_anchor=(1, 1.15))
-    ax2.legend(loc="upper left", bbox_to_anchor=(0, 1.15))
+    ax1.legend(loc="upper right", ncol=3, bbox_to_anchor=(1.05, 1.15), borderaxespad=2)
+    ax2.legend(loc="upper left", bbox_to_anchor=(-0.05, 1.15), borderaxespad=2)
 
     ax2.set_ylim(0, 120)
 
@@ -204,6 +204,33 @@ def draw_time_breakdown_group(res, file_name, format):
     plt.legend(ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.15))
 
     plt.tight_layout()
+
+    plt.savefig(file_name)
+
+def draw_neoharry_throughput_group(bench_group_result, file_name, format):
+    fig, ax1 = plt.subplots()
+    ax1.set_xlabel("# Rules")
+    ax1.set_ylabel("Throughput (Gbit/s)")
+    labels = ["TNeoHarry", "DNeoHarry", "NeoHarry"]
+
+    tneoharry = [a / 1000 for a in bench_group_result[2]]
+    dneoharry = [a / 1000 for a in bench_group_result[3]]
+    neoharry = [max(a, b) for a, b in zip(tneoharry, dneoharry)]    
+    targets = [tneoharry, dneoharry, neoharry]
+
+    x = bench_group_result[0]
+    for i in range(len(targets)):
+        ax1.plot(x, targets[i], color = COLORS[i*2], marker=MARKERS[i*2], linestyle='-', label=labels[i])
+    
+    ax2 = ax1.twinx()
+    ax2.set_ylabel("# Matches/Mbytes")
+
+    ax2.plot(x, bench_group_result[1], color = COLORS[-1], marker=MARKERS[-1], linestyle='-', label="Match Rate")
+
+    ax1.legend(loc="upper right", ncol=3, bbox_to_anchor=(1.09,1.15), borderaxespad=2)
+    ax2.legend(loc="upper left", bbox_to_anchor=(-0.09,1.15), borderaxespad=2)
+
+    ax2.set_ylim(0, 120)
 
     plt.savefig(file_name)
 
@@ -316,6 +343,14 @@ def draw_bench_groups():
         res = read_bench_group_result_from_file("./data/{}.res".format(groups[target]))
         draw_bench_group(res, "./data/figures/" + groups[target] + ".pdf", format="pdf")
 
+def draw_neoharry_throughput_groups():
+    groups = ["neo-ixia", "neo-fudan", "neo-random"]
+    targets = [0, 1, 2]
+    
+    for target in targets:
+        res = read_bench_group_result_from_file("./data/{}.res".format(groups[target]))
+        draw_neoharry_throughput_group(res, "./data/figures/" + groups[target] + ".pdf", format="pdf")
+
 def run_bench_groups():
     exps = [
     ("./data/ixia-snort-lit-sets/0.1", "./data/corpora/ixia-http-responses.db", "snort-ixia"),
@@ -364,3 +399,4 @@ if __name__ == "__main__":
     res = read_time_breakdown_result_from_file("./data/snort-fudan-time.res")
     draw_time_breakdown_group(res, "./data/figures/snort-fudan-time.pdf", "pdf")
     draw_bench_groups()
+    draw_neoharry_throughput_groups()
