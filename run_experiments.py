@@ -165,8 +165,8 @@ def draw_bench_group(bench_group_result, file_name, format):
     plt.savefig(file_name)
 
 def draw_time_breakdown_group(res, file_name, format):
-    xticks = res[0]
-    n = len(res[0])
+    n = len(res[0]) - 2
+    xticks = res[0][0:n]
 
     fdr_frontend = [res[2][i] * (res[3][i] / (res[3][i] + 1)) / 1000 for i in range(n)]
     fdr_backend = [res[2][i] / 1000 - fdr_frontend[i] for i in range(n)]
@@ -199,7 +199,7 @@ def draw_time_breakdown_group(res, file_name, format):
     plt.bar(x3, neoharry_backend, width=width, color=COLORS[5], bottom=neoharry_frontend, label="NeoHarry Exact Match")
 
     plt.xlabel("# Rules")
-    plt.ylabel("Run Time (seconds)")
+    plt.ylabel("Run Time (milliseconds)")
 
     plt.legend(ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.15))
 
@@ -361,6 +361,6 @@ def run_time_breakdown_groups():
 
 if __name__ == "__main__":
     # run_time_breakdown_groups()
-    # res = read_time_breakdown_result_from_file("./data/snort-fudan-time.res")
-    # draw_time_breakdown_group(res, "./data/figures/snort-fudan-time.pdf", "pdf")
+    res = read_time_breakdown_result_from_file("./data/snort-fudan-time.res")
+    draw_time_breakdown_group(res, "./data/figures/snort-fudan-time.pdf", "pdf")
     draw_bench_groups()
