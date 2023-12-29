@@ -6,6 +6,9 @@ import random
 import numpy as np
 
 MARKERS = ['o', '^', 's', '*', 'x', '+', 'd']
+COLORS = [(99,0,169), (204,73,117), (189,55,82), (252,140,90), (75,116,178), (144,190,224), (0,0,0)]
+COLORS = np.array(COLORS)
+COLORS = COLORS / 255
 
 AC = 0
 FDR = 0
@@ -133,27 +136,29 @@ def run_time_breakdown_group(lit_set_dir, input_data, build_dirs):
 def draw_bench_group(bench_group_result, file_name, format):
     fig, ax1 = plt.subplots()
     ax1.set_xlabel("# Rules")
-    ax1.set_ylabel("Throughput (Mbit/s)")
-    labels = ["FDR", "THarry", "DHarry", "TNeoHarry", "DNeoHarry"]
+    ax1.set_ylabel("Throughput (Gbit/s)")
+    labels = ["FDR", "Harry", "NeoHarry"]
 
-    fdr = bench_group_result[2]
+    fdr = [a / 1000 for a in bench_group_result[2]]
     tharry = bench_group_result[3]
     dharry = bench_group_result[4]
+    harry = [max(a, b) / 1000 for a, b in zip(tharry, dharry)]
     tneoharry = bench_group_result[5]
     dneoharry = bench_group_result[6]
-    targets = [fdr, tharry, dharry, tneoharry, dneoharry]
+    neoharry = [max(a, b) / 1000 for a, b in zip(tneoharry, dneoharry)]    
+    targets = [fdr, harry, neoharry]
 
     x = bench_group_result[0]
     for i in range(len(targets)):
-        ax1.plot(x, targets[i], marker=MARKERS[i], linestyle='-', label=labels[i])
+        ax1.plot(x, targets[i], color = COLORS[i * 2], marker=MARKERS[i], linestyle='-', label=labels[i])
     
     ax2 = ax1.twinx()
     ax2.set_ylabel("# Matches/Mbytes")
 
-    ax2.plot(x, bench_group_result[1], marker=MARKERS[len(targets)], linestyle='-', label="Match Rate")
+    ax2.plot(x, bench_group_result[1], color = COLORS[-1], marker=MARKERS[-1], linestyle='-', label="Match Rate")
 
-    ax1.legend(loc="upper right", ncol=2, bbox_to_anchor=(0.9, 1))
-    ax2.legend(loc="upper left", bbox_to_anchor=(0.1, 1))
+    ax1.legend(loc="upper right", ncol=3, bbox_to_anchor=(1, 1.15))
+    ax2.legend(loc="upper left", bbox_to_anchor=(0, 1.15))
 
     ax2.set_ylim(0, 120)
 
@@ -163,22 +168,22 @@ def draw_time_breakdown_group(res, file_name, format):
     xticks = res[0]
     n = len(res[0])
 
-    fdr_frontend = [res[2][i] * (res[3][i] / (res[3][i] + 1)) for i in range(n)]
-    fdr_backend = [res[2][i] - fdr_frontend[i] for i in range(n)]
+    fdr_frontend = [res[2][i] * (res[3][i] / (res[3][i] + 1)) / 1000 for i in range(n)]
+    fdr_backend = [res[2][i] / 1000 - fdr_frontend[i] for i in range(n)]
 
     tneoharry = [(res[4][i], res[5][i]) for i in range(n)]
     dneoharry = [(res[6][i], res[7][i]) for i in range(n)]
     neoharry = [tneoharry[i] if tneoharry[i][0] < dneoharry[i][0] else dneoharry[i] for i in range(n)]
 
-    neoharry_frontend = [neoharry[i][0] * (neoharry[i][1] / (neoharry[i][1] + 1)) for i in range(n)]
-    neoharry_backend = [neoharry[i][0] - neoharry_frontend[i] for i in range(n)]
+    neoharry_frontend = [neoharry[i][0] * (neoharry[i][1] / (neoharry[i][1] + 1)) / 1000 for i in range(n)]
+    neoharry_backend = [neoharry[i][0] / 1000 - neoharry_frontend[i] for i in range(n)]
 
     tharry = [(res[8][i], res[9][i]) for i in range(n)]
     dharry = [(res[10][i], res[11][i]) for i in range(n)]
     harry = [tharry[i] if tharry[i][0] < dharry[i][0] else dharry[i] for i in range(n)]
 
-    harry_frontend = [harry[i][0] * (harry[i][1] / (harry[i][1] + 1)) for i in range(n)]
-    harry_backend = [harry[i][0] - harry_frontend[i] for i in range(n)]
+    harry_frontend = [harry[i][0] * (harry[i][1] / (harry[i][1] + 1)) / 1000 for i in range(n)]
+    harry_backend = [harry[i][0] / 1000 - harry_frontend[i] for i in range(n)]
 
     width = 100
 
@@ -186,17 +191,17 @@ def draw_time_breakdown_group(res, file_name, format):
     x2 = [i for i in xticks]
     x3 = [i + width for i in xticks]
 
-    plt.bar(x1, fdr_frontend, width=width, color="blue", label="FDR Shift-Or Match")
-    plt.bar(x1, fdr_backend, width=width, color="orange", bottom=fdr_frontend, label="FDR Exact Match")
-    plt.bar(x2, harry_frontend, width=width, color="pink", label="Harry Shift-Or Match")
-    plt.bar(x2, harry_backend, width=width, color="red", bottom=harry_frontend, label="Harry Exact Match")
-    plt.bar(x3, neoharry_frontend, width=width, color="green", label="NeoHarry Shift-Or Match")
-    plt.bar(x3, neoharry_backend, width=width, color="yellow", bottom=neoharry_frontend, label="NeoHarry Exact Match")
+    plt.bar(x1, fdr_frontend, width=width, color=COLORS[0], label="FDR Shift-Or Match")
+    plt.bar(x1, fdr_backend, width=width, color=COLORS[1], bottom=fdr_frontend, label="FDR Exact Match")
+    plt.bar(x2, harry_frontend, width=width, color=COLORS[2], label="Harry Shift-Or Match")
+    plt.bar(x2, harry_backend, width=width, color=COLORS[3], bottom=harry_frontend, label="Harry Exact Match")
+    plt.bar(x3, neoharry_frontend, width=width, color=COLORS[4], label="NeoHarry Shift-Or Match")
+    plt.bar(x3, neoharry_backend, width=width, color=COLORS[5], bottom=neoharry_frontend, label="NeoHarry Exact Match")
 
     plt.xlabel("# Rules")
-    plt.ylabel("Run Time (microseconds)")
+    plt.ylabel("Run Time (seconds)")
 
-    plt.legend(ncol=2, loc="upper center", bbox_to_anchor=(0.5, 1.15))
+    plt.legend(ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.15))
 
     plt.tight_layout()
 
@@ -355,6 +360,7 @@ def run_time_breakdown_groups():
         save_time_breakdown_group(res, "./data/{}.res".format(exp[2]))
 
 if __name__ == "__main__":
-    run_time_breakdown_groups()
-    res = read_time_breakdown_result_from_file("./data/snort-fudan-time.res")
-    draw_time_breakdown_group(res, "./data/figures/snort-fudan-time.pdf", "pdf")
+    # run_time_breakdown_groups()
+    # res = read_time_breakdown_result_from_file("./data/snort-fudan-time.res")
+    # draw_time_breakdown_group(res, "./data/figures/snort-fudan-time.pdf", "pdf")
+    draw_bench_groups()
