@@ -4,6 +4,7 @@ import subprocess
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+import math
 
 MARKERS = ['o', '^', 's', '*', 'x', '+', 'd']
 COLORS = [(99,0,169), (204,73,117), (189,55,82), (252,140,90), (75,116,178), (144,190,224), (0,0,0)]
@@ -91,7 +92,6 @@ def parse_fp_result(unit_out):
     fp_num = int(matches[0])
 
     return lit_num, match_rate, fp_num
-    
 
 def run_bench_group(lit_set_dir, input_data, build_dirs):
     """跑一组规则集+corpus
@@ -222,6 +222,7 @@ def draw_time_breakdown_group(res, file_name, format):
 
     width = 100
 
+    plt.xticks(xticks)
     x1 = [i - width for i in xticks]
     x2 = [i for i in xticks]
     x3 = [i + width for i in xticks]
@@ -264,6 +265,34 @@ def draw_neoharry_throughput_group(bench_group_result, file_name, format):
 
     ax1.legend(loc="upper right", ncol=3, bbox_to_anchor=(1.09,1.15), borderaxespad=2)
     ax2.legend(loc="upper left", bbox_to_anchor=(-0.09,1.15), borderaxespad=2)
+
+    ax2.set_ylim(0, 120)
+
+    plt.savefig(file_name)
+
+def draw_neoharry_fp_group(fp_group_result, file_name, format):
+    fig, ax1 = plt.subplots()
+    ax1.set_xlabel("# Rules")
+    ax1.set_ylabel("False Positive")
+    labels = ["TNeoHarry", "DNeoHarry"]
+
+    tneoharry = fp_group_result[2]
+    dneoharry = fp_group_result[3]
+    targets = [tneoharry, dneoharry]
+
+    yticks = [0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7]
+    x = fp_group_result[0]
+    for i in range(len(targets)):
+        ax1.plot(x, targets[i], color = COLORS[i*2], marker=MARKERS[i*2], linestyle='-', label=labels[i])
+    ax1.set_yscale('log')
+
+    ax2 = ax1.twinx()
+    ax2.set_ylabel("# Matches/Mbytes")
+
+    ax2.plot(x, fp_group_result[1], color = COLORS[-1], marker=MARKERS[-1], linestyle='-', label="Match Rate")
+
+    ax1.legend(loc="upper right", ncol=2, bbox_to_anchor=(1,1.15), borderaxespad=2)
+    ax2.legend(loc="upper left", bbox_to_anchor=(0,1.15), borderaxespad=2)
 
     ax2.set_ylim(0, 120)
 
@@ -432,6 +461,14 @@ def draw_neoharry_throughput_groups():
         res = read_bench_group_result_from_file("./data/{}.res".format(groups[target]))
         draw_neoharry_throughput_group(res, "./data/figures/" + groups[target] + ".pdf", format="pdf")
 
+def draw_neoharry_fp_groups():
+    groups = ["snort-fudan-neoharry-fp", "snort-ixia-neoharry-fp", "snort-random-neoharry-fp"]
+    targets = [0, 1, 2]
+    
+    for target in targets:
+        res = read_neoharry_fp_group_result_from_file("./data/{}.res".format(groups[target]))
+        draw_neoharry_fp_group(res, "./data/figures/" + groups[target] + ".pdf", format="pdf")
+
 def run_bench_groups():
     exps = [
     ("./data/ixia-snort-lit-sets/0.1", "./data/corpora/ixia-http-responses.db", "snort-ixia"),
@@ -491,5 +528,41 @@ def run_time_breakdown_groups():
         res = norm_time_breakdown_group_result(run_time_breakdown_group(exp[0], exp[1], build_dirs))
         save_time_breakdown_group(res, "./data/{}.res".format(exp[2]))
 
+def compute_bench_progress_group(bench_group_result, group_name):
+    fdr = bench_group_result[2]
+    tharry = bench_group_result[3]
+    dharry = bench_group_result[4]
+    harry = [max(a, b) for a, b in zip(tharry, dharry)]
+    tneoharry = bench_group_result[5]
+    dneoharry = bench_group_result[6]
+    neoharry = [max(a, b) for a, b in zip(tneoharry, dneoharry)]    
+
+    fdr_min = 100
+    fdr_max = 0
+    harry_min = 100
+    harry_max = 0
+    for a, b, c in zip(fdr, harry, neoharry):
+        fdr_min = min(fdr_min, (c - a) / a)
+        fdr_max = max(fdr_max, (c - a) / a)
+        harry_min = min(harry_min, (c - b) / b)
+        harry_max = max(harry_max, (c - b) / b)
+
+    print(group_name + ": " )
+    print("\t" + "fdr min: " + f"{fdr_min:.2f}" + "%, " + "fdr max: " + f"{fdr_max:.2f}" + "%")
+    print("\t" + "harry min: " + f"{harry_min:.2f}" + "%, " + "harry max: " + f"{harry_max:.2f}" + "%")
+
+def compute_bench_progress_groups():
+    groups = ["snort-ixia", "snort-fudan", "snort-random"]
+    targets = [0, 1, 2]
+    
+    for target in targets:
+        res = read_bench_group_result_from_file("./data/{}.res".format(groups[target]))
+        compute_bench_progress_group(res, groups[target])
+
 if __name__ == "__main__":
-    run_neoharry_fp_groups()
+    # res = read_time_breakdown_group_result_from_file("./data/snort-fudan-time.res")
+    # draw_time_breakdown_group(res, "./data/figures/snort-fudan-time.pdf", "pdf")
+    # draw_bench_groups()
+    # draw_neoharry_throughput_groups()
+    # draw_neoharry_fp_groups()
+    compute_bench_progress_groups()
