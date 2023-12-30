@@ -24,7 +24,7 @@ FALSE_POSITIVE = 3
 
 def run_unit(lit_set, input_data, build_dir):
     print("Run on {} {} {}".format(lit_set, input_data, build_dir))
-    command = "taskset -c 17 {} -c {} -e {} -n 10 -N".format(build_dir + "/bin/hsbench", input_data, lit_set)
+    command = "taskset -c 17 {} -c {} -e {} -n 1 -N".format(build_dir + "/bin/hsbench", input_data, lit_set)
 
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
@@ -76,6 +76,21 @@ def parse_time_breakdown_result(unit_out):
     confirm_time = float(matches[0]) * 1000000
 
     return lit_num, match_rate, (total_time - confirm_time) / confirm_time
+
+def parse_fp_result(unit_out):
+    matches = re.findall(r'\((\d+.\d+) matches/kilobyte\)', unit_out)
+    assert len(matches) == 1
+    match_rate = int(float(matches[0]) * 1024)
+
+    matches = re.findall(r'Expression count:\s+(\d{1,3}(,\d{3})*)', unit_out)
+    assert len(matches) == 1
+    lit_num = int(matches[0][0].replace(',', ''))
+    
+    matches = re.findall(r'False Positive cnt:\s+(\d+)', unit_out)
+    assert len(matches) == 1
+    fp_num = int(matches[0])
+
+    return lit_num, match_rate, fp_num
     
 
 def run_bench_group(lit_set_dir, input_data, build_dirs):
@@ -130,6 +145,26 @@ def run_time_breakdown_group(lit_set_dir, input_data, build_dirs):
             file_path = os.path.join(root, file)
             for idx, build_dir in enumerate(build_dirs):
                 res[idx].append(parse_time_breakdown_result(run_unit(file_path, input_data, build_dir)))
+    
+    return res
+
+def run_neoharry_fp_group(lit_set_dir, input_data, build_dirs):
+    """
+    Returns:
+        [
+            [(lit_num, match_rate, fp_num), (lit_num, match_rate, fp_num),...],
+            [(lit_num, match_rate, fp_num), (lit_num, match_rate, fp_num),...],
+            ......
+        ]
+    """
+    res = [[] for i in range(len(build_dirs))]
+
+    for root, dirs, files in os.walk(lit_set_dir):
+        files = sorted(files, key=lambda x: int(re.findall(r'-(\d+)\.lits', x)[0]))
+        for file in files:
+            file_path = os.path.join(root, file)
+            for idx, build_dir in enumerate(build_dirs):
+                res[idx].append(parse_fp_result(run_unit(file_path, input_data, build_dir)))
     
     return res
 
@@ -298,12 +333,48 @@ def norm_time_breakdown_group_result(result):
     
     return res
 
+def norm_neoharry_fp_group_result(result):
+    """
+    Args:
+        result (_type_): _description_
+        [
+            [(lit_num, match_rate, fp_num), (lit_num, match_rate, fp_num),...],
+            [(lit_num, match_rate, fp_num), (lit_num, match_rate, fp_num),...],
+            [(lit_num, match_rate, fp_num), (lit_num, match_rate, fp_num),...],
+            ......
+        ]
+
+    Returns:
+        [
+            [lit_num, lit_num, lit_num,...],
+            [match_rate, match_rate, match_rate,...],
+            [tneoharry_fp, tneoharry_fp, tneoharry_fp,...],
+            [dneoharry_fp, dneoharry_fp, dneoharry_fp...],
+            ......
+        ]
+    """
+    res = []
+    res.append([x[0] for x in result[0]])
+    res.append([x[1] for x in result[0]])
+    
+    # Add false positive rows
+    assert len(result) == 2
+    for item in result:
+        res.append([x[2] for x in item])
+    
+    return res
+
 def save_bench_group(result, file_name):
     tmp_result = [[str(x) for x in y] for y in result]
     with open(file_name, 'w') as f:
         f.writelines([','.join(x) + '\n' for x in tmp_result])
 
 def save_time_breakdown_group(result, file_name):
+    tmp_result = [[str(x) for x in y] for y in result]
+    with open(file_name, 'w') as f:
+        f.writelines([','.join(x) + '\n' for x in tmp_result])
+
+def save_neoharry_fp_group(result, file_name):
     tmp_result = [[str(x) for x in y] for y in result]
     with open(file_name, 'w') as f:
         f.writelines([','.join(x) + '\n' for x in tmp_result])
@@ -325,7 +396,17 @@ def read_bench_group_result_from_file(file_name):
             res.append([str_to_type(x) for x in line.strip().split(',')])
     return res
 
-def read_time_breakdown_result_from_file(file_name):
+def read_time_breakdown_group_result_from_file(file_name):
+    res = []
+    with open(file_name, 'r') as f:
+        lines = f.readlines()
+        for idx, line in enumerate(lines):
+            if line.strip() == "":
+                break
+            res.append([str_to_type(x) for x in line.strip().split(',')])
+    return res
+
+def read_neoharry_fp_group_result_from_file(file_name):
     res = []
     with open(file_name, 'r') as f:
         lines = f.readlines()
@@ -371,6 +452,22 @@ def run_bench_groups():
         res = norm_bench_group_result(run_bench_group(exp[0], exp[1], build_dirs))
         save_bench_group(res, "./data/{}.res".format(exp[2]))
 
+def run_neoharry_fp_groups():
+    exps = [
+    ("./data/ixia-snort-lit-sets/0.1", "./data/corpora/ixia-http-responses.db", "snort-ixia"),
+    ("./data/fudan-snort-lit-sets/0.1", "./data/corpora/fudan1.db", "snort-fudan"),
+    ("./data/random-snort-lit-sets", "./data/corpora/random-1500b.db", "snort-random")]
+
+    targets = [0, 1, 2]
+
+    build_dirs = ["/home/xuhao/ue2/build_tneoharry_fp", "/home/xuhao/ue2/build_dneoharry_fp"]
+
+    for target in targets:
+        exp = exps[target]
+        print("Run false positive counting on {}".format(exp))
+        res = norm_neoharry_fp_group_result(run_neoharry_fp_group(exp[0], exp[1], build_dirs))
+        save_neoharry_fp_group(res, "./data/{}-neoharry-fp.res".format(exp[2]))
+
 def run_time_breakdown_groups():
     exps = [
     ("./data/fudan-snort-lit-sets/time-breakdown", "./data/corpora/fudan1.db", "snort-fudan-time")]
@@ -395,8 +492,4 @@ def run_time_breakdown_groups():
         save_time_breakdown_group(res, "./data/{}.res".format(exp[2]))
 
 if __name__ == "__main__":
-    # run_time_breakdown_groups()
-    res = read_time_breakdown_result_from_file("./data/snort-fudan-time.res")
-    draw_time_breakdown_group(res, "./data/figures/snort-fudan-time.pdf", "pdf")
-    draw_bench_groups()
-    draw_neoharry_throughput_groups()
+    run_neoharry_fp_groups()
