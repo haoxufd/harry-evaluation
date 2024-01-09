@@ -170,8 +170,8 @@ def run_neoharry_fp_group(lit_set_dir, input_data, build_dirs):
 
 def draw_bench_group(bench_group_result, file_name, format):
     fig, ax1 = plt.subplots()
-    ax1.set_xlabel("# Rules")
-    ax1.set_ylabel("Throughput (Gbit/s)")
+    ax1.set_xlabel("# Rules", fontsize=17)
+    ax1.set_ylabel("Throughput (Gbit/s)", fontsize=17)
     labels = ["FDR", "Harry", "NeoHarry"]
 
     fdr = [a / 1000 for a in bench_group_result[2]]
@@ -188,15 +188,19 @@ def draw_bench_group(bench_group_result, file_name, format):
         ax1.plot(x, targets[i], color = COLORS[i * 2], marker=MARKERS[i], linestyle='-', label=labels[i])
     
     ax2 = ax1.twinx()
-    ax2.set_ylabel("# Matches/Mbytes")
+    ax2.set_ylabel("# Matches/Mbytes", fontsize=17)
 
     ax2.plot(x, bench_group_result[1], color = COLORS[-1], marker=MARKERS[-1], linestyle='-', label="Match Rate")
 
-    ax1.legend(loc="upper right", ncol=3, bbox_to_anchor=(1.05, 1.15), borderaxespad=2)
-    ax2.legend(loc="upper left", bbox_to_anchor=(-0.05, 1.15), borderaxespad=2)
+    ax1.legend(loc="upper right", ncol=3, bbox_to_anchor=(1.25, 1.25), borderaxespad=2, fontsize=13)
+    ax2.legend(loc="upper left", bbox_to_anchor=(-0.2, 1.25), borderaxespad=2, fontsize=13)
 
     ax2.set_ylim(0, 120)
+    ax1.tick_params(axis='x', labelsize=14)
+    ax1.tick_params(axis='y', labelsize=14)
+    ax2.tick_params(axis='y', labelsize=14)
 
+    plt.tight_layout()
     plt.savefig(file_name)
 
 def draw_time_breakdown_group(res, file_name, format):
@@ -228,25 +232,28 @@ def draw_time_breakdown_group(res, file_name, format):
     x3 = [i + width for i in xticks]
 
     plt.bar(x1, fdr_frontend, width=width, color=COLORS[0], label="FDR Shift-Or Match")
-    plt.bar(x1, fdr_backend, width=width, color=COLORS[1], bottom=fdr_frontend, label="FDR Exact Match")
     plt.bar(x2, harry_frontend, width=width, color=COLORS[2], label="Harry Shift-Or Match")
-    plt.bar(x2, harry_backend, width=width, color=COLORS[3], bottom=harry_frontend, label="Harry Exact Match")
     plt.bar(x3, neoharry_frontend, width=width, color=COLORS[4], label="NeoHarry Shift-Or Match")
+    plt.bar(x1, fdr_backend, width=width, color=COLORS[1], bottom=fdr_frontend, label="FDR Exact Match")
+    plt.bar(x2, harry_backend, width=width, color=COLORS[3], bottom=harry_frontend, label="Harry Exact Match")
     plt.bar(x3, neoharry_backend, width=width, color=COLORS[5], bottom=neoharry_frontend, label="NeoHarry Exact Match")
+   
 
-    plt.xlabel("# Rules")
-    plt.ylabel("Run Time (milliseconds)")
+    plt.xlabel("# Rules", fontsize=16)
+    plt.ylabel("Run Time (milliseconds)", fontsize=16)
 
-    plt.legend(ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.15))
+    plt.legend(ncol=2, loc="upper center", bbox_to_anchor=(0.5, 1.4), fontsize=13)
 
+    plt.tick_params(axis='y', labelsize=13)
+    plt.tick_params(axis='x', labelsize=13)
+    
     plt.tight_layout()
-
     plt.savefig(file_name)
 
 def draw_neoharry_throughput_group(bench_group_result, file_name, format):
     fig, ax1 = plt.subplots()
-    ax1.set_xlabel("# Rules")
-    ax1.set_ylabel("Throughput (Gbit/s)")
+    ax1.set_xlabel("# Rules", fontsize=17)
+    ax1.set_ylabel("Throughput (Gbit/s)", fontsize=17)
     labels = ["TNeoHarry", "DNeoHarry", "NeoHarry"]
 
     tneoharry = [a / 1000 for a in bench_group_result[2]]
@@ -259,21 +266,25 @@ def draw_neoharry_throughput_group(bench_group_result, file_name, format):
         ax1.plot(x, targets[i], color = COLORS[i*2], marker=MARKERS[i*2], linestyle='-', label=labels[i])
     
     ax2 = ax1.twinx()
-    ax2.set_ylabel("# Matches/Mbytes")
+    ax2.set_ylabel("# Matches/Mbytes", fontsize=17)
 
     ax2.plot(x, bench_group_result[1], color = COLORS[-1], marker=MARKERS[-1], linestyle='-', label="Match Rate")
 
-    ax1.legend(loc="upper right", ncol=3, bbox_to_anchor=(1.09,1.15), borderaxespad=2)
-    ax2.legend(loc="upper left", bbox_to_anchor=(-0.09,1.15), borderaxespad=2)
+    ax1.legend(loc="upper right", ncol=2, bbox_to_anchor=(1.15, 1.3), borderaxespad=2, fontsize=13)
+    ax2.legend(loc="upper left", bbox_to_anchor=(-0.1, 1.3), borderaxespad=2, fontsize=13)
 
     ax2.set_ylim(0, 120)
+    ax1.tick_params(axis='x', labelsize=14)
+    ax1.tick_params(axis='y', labelsize=14)
+    ax2.tick_params(axis='y', labelsize=14)
 
+    plt.tight_layout()
     plt.savefig(file_name)
 
 def draw_neoharry_fp_group(fp_group_result, file_name, format):
     fig, ax1 = plt.subplots()
-    ax1.set_xlabel("# Rules")
-    ax1.set_ylabel("False Positive")
+    ax1.set_xlabel("# Rules", fontsize=17)
+    ax1.set_ylabel("False Positive", fontsize=17)
     labels = ["TNeoHarry", "DNeoHarry"]
 
     tneoharry = fp_group_result[2]
@@ -287,15 +298,19 @@ def draw_neoharry_fp_group(fp_group_result, file_name, format):
     ax1.set_yscale('log')
 
     ax2 = ax1.twinx()
-    ax2.set_ylabel("# Matches/Mbytes")
+    ax2.set_ylabel("# Matches/Mbytes", fontsize=17)
 
     ax2.plot(x, fp_group_result[1], color = COLORS[-1], marker=MARKERS[-1], linestyle='-', label="Match Rate")
 
-    ax1.legend(loc="upper right", ncol=2, bbox_to_anchor=(1,1.15), borderaxespad=2)
-    ax2.legend(loc="upper left", bbox_to_anchor=(0,1.15), borderaxespad=2)
+    ax1.legend(loc="upper right", ncol=2, bbox_to_anchor=(1.15,1.25), borderaxespad=2, fontsize=13)
+    ax2.legend(loc="upper left", bbox_to_anchor=(-0.15,1.25), borderaxespad=2, fontsize=13)
 
     ax2.set_ylim(0, 120)
+    ax1.tick_params(axis='x', labelsize=14)
+    ax1.tick_params(axis='y', labelsize=14)
+    ax2.tick_params(axis='y', labelsize=14)
 
+    plt.tight_layout()
     plt.savefig(file_name)
 
 def norm_bench_group_result(result):
@@ -454,7 +469,7 @@ def draw_bench_groups():
         draw_bench_group(res, "./data/figures/" + groups[target] + ".pdf", format="pdf")
 
 def draw_neoharry_throughput_groups():
-    groups = ["neo-ixia", "neo-fudan", "neo-random"]
+    groups = ["enc-sel-snort-ixia", "enc-sel-snort-fudan", "enc-sel-snort-random"]
     targets = [0, 1, 2]
     
     for target in targets:
@@ -462,7 +477,7 @@ def draw_neoharry_throughput_groups():
         draw_neoharry_throughput_group(res, "./data/figures/" + groups[target] + ".pdf", format="pdf")
 
 def draw_neoharry_fp_groups():
-    groups = ["snort-fudan-neoharry-fp", "snort-ixia-neoharry-fp", "snort-random-neoharry-fp"]
+    groups = ["fp-snort-fudan", "fp-snort-ixia", "fp-snort-random"]
     targets = [0, 1, 2]
     
     for target in targets:
@@ -477,17 +492,13 @@ def run_bench_groups():
 
     targets = [0, 1, 2]
 
-    build_dirs = ["/home/xuhao/ue2/build_fdr", 
-                  "/home/xuhao/ue2/build_tharry", 
-                  "/home/xuhao/ue2/build_dharry", 
-                  "/home/xuhao/ue2/build_tneoharry", 
-                  "/home/xuhao/ue2/build_dneoharry"]
+    build_dirs = ["/home/xuhao/ue2/build_ac"]
 
     for target in targets:
         exp = exps[target]
         print("Run benchmark on {}".format(exp))
         res = norm_bench_group_result(run_bench_group(exp[0], exp[1], build_dirs))
-        save_bench_group(res, "./data/{}.res".format(exp[2]))
+        save_bench_group(res, "./data/{}-ac.res".format(exp[2]))
 
 def run_neoharry_fp_groups():
     exps = [
@@ -560,9 +571,9 @@ def compute_bench_progress_groups():
         compute_bench_progress_group(res, groups[target])
 
 if __name__ == "__main__":
-    # res = read_time_breakdown_group_result_from_file("./data/snort-fudan-time.res")
-    # draw_time_breakdown_group(res, "./data/figures/snort-fudan-time.pdf", "pdf")
+    # res = read_time_breakdown_group_result_from_file("./data/time-breakdown-snort-fudan.res")
+    # draw_time_breakdown_group(res, "./data/figures/time-breakdown-snort-fudan.pdf", "pdf")
     # draw_bench_groups()
     # draw_neoharry_throughput_groups()
     # draw_neoharry_fp_groups()
-    compute_bench_progress_groups()
+    run_bench_groups()
